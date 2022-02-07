@@ -1,0 +1,94 @@
+syntax = "proto3";
+package peek.v1;
+option go_package = "peek/v1";
+
+message  Target {
+  string namespace = 1;
+  string pod = 2;
+}
+
+message Agent {
+  string name = 1;
+  enum type{
+    pod = 0;
+    vm = 1;
+  }
+  Target target = 2;
+  string ip = 3;
+  agent_status status = 4;
+
+  repeated Job jobs = 5;
+  repeated Job current_jobs = 6;
+
+  enum agent_status{
+    initializing = 0;
+    running = 1;
+    terminating = 2;
+    terminated = 3;
+    released = 4;
+  }
+}
+
+message Job{
+  string name = 1;
+  job_command command = 2;
+  repeated string args = 3;
+  job_config config = 4;
+  job_result result = 5;
+  job_status status = 6;
+}
+
+message job_config{
+  bool isAsync = 1;
+  int32 timeout = 2;
+}
+
+enum job_command {
+  binary = 0;
+  go_profile_cpu = 1;
+}
+
+
+enum job_status{
+  queued = 0;
+  running = 1;
+  failed = 2;
+  completed = 3;
+}
+
+message job_result {
+  oneof result {
+    string stdout = 1;
+    string download_url = 2;
+  }
+  string error = 3;
+  int32 exit_code = 4;
+}
+
+message EmptyRequest{
+}
+message AgentAliveResponse{
+  bool alive = 1;
+}
+
+message Jobs{
+  repeated Job jobs = 1;
+}
+
+service AgentService{
+  rpc GetInfo(EmptyRequest) returns (Agent);
+  rpc CreateJob(Job) returns (Job){}
+  rpc GetJobs(EmptyRequest) returns (Jobs){}
+  rpc GetJob(Job) returns (Job){}
+}
+
+message ManagerGetJobRequest{
+  Target target = 1;
+  string job_name = 2;
+}
+
+service ManagerService {
+  rpc CreateAgent(Target) returns (Agent){}
+  rpc GetAgent(Target) returns (Agent){}
+  rpc GetJob(ManagerGetJobRequest) returns (Job){}
+}
